@@ -27,7 +27,7 @@ def main():
     st.set_page_config(page_title="KeepTune Dashboard", layout="wide", page_icon="🎧")
 
     # --- [사이드바 구성] ---
-    st.sidebar.title("🎧 KeepTune")
+    st.sidebar.title("     🎧 KeepTune")
     st.sidebar.markdown("---")
 
     # 페이지 상태 관리
