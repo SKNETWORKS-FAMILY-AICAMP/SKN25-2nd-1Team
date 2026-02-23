@@ -12,17 +12,6 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 MODELS_DIR = ROOT_DIR / "models" # 모델 저장 경로
 SAVE_DIR =ROOT_DIR / "data" / "preprocessed" # 전처리 된 데이터 저장 경로
 
-import joblib
-import streamlit as st
-from pathlib import Path
-
-# 0. root 경로 선언
-ROOT_DIR = Path(__file__).resolve().parents[1]
-
-MODELS_DIR = ROOT_DIR / "models"  # 모델 저장 경로
-SAVE_DIR = ROOT_DIR / "data" / "preprocessed"  # 전처리 데이터 저장 경로
-
-
 @st.cache_resource
 def get_resources():
     print("🚀 [System] Loading models into memory...")
