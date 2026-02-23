@@ -13,7 +13,7 @@ st.sidebar.markdown("---")
 
 # 페이지 상태 관리 (기본값 설정)
 if 'page' not in st.session_state: 
-    st.session_state.page = '종합 관제실'
+    st.session_state.page = '대시보드'
 
 st.sidebar.subheader("분석 리포트")
 
