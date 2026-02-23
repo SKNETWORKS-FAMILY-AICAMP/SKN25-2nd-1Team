@@ -1,57 +1,55 @@
 import joblib
+import torch
 import pandas as pd
 import numpy as np
 import streamlit as st
-import os
-## app_predict.py에서 사용
-# 0. root 경로 선언
 from pathlib import Path
 
+# [경로 수정] image_aaf659.png 구조 반영
 ROOT_DIR = Path(__file__).resolve().parents[1]
-
-MODELS_DIR = ROOT_DIR / "models" # 모델 저장 경로
-SAVE_DIR =ROOT_DIR / "data" / "preprocessed" # 전처리 된 데이터 저장 경로
+MODELS_DIR = ROOT_DIR / "results"  # 모델이 results 폴더에 있음
 
 @st.cache_resource
 def get_resources():
-    print("🚀 [System] Loading models into memory...")
-
     try:
-        lgbm = joblib.load(MODELS_DIR / "lgbm_model.pkl")
-        rf = joblib.load(MODELS_DIR / "rf_model.pkl")
-        mlp = joblib.load(MODELS_DIR / "mlp_model.pkl")
-        scaler = joblib.load(SAVE_DIR / "scaler.pkl")
-        feature_names = joblib.load(SAVE_DIR / "feature_names.pkl")
-
-        print("✅ [System] All models loaded successfully.")
-
+        # 1. XGBoost 로드 (.pkl)
+        xgb = joblib.load(MODELS_DIR / "xgboost_model.pkl")
+        
+        # 2. ResNet 로드 (.pth) - CPU 환경 최적화
+        # 모델 구조 선언이 필요할 수 있으나, 전체 저장 방식(torch.save) 기준으로 로드
+        resnet = torch.load(MODELS_DIR / "resnet_model.pth", map_location='cpu')
+        resnet.eval()
+        
+        # 3. 스케일러 로드
+        scaler = joblib.load(MODELS_DIR / "resnet_scaler.pkl")
+        
+        # 피처 이름은 학습 데이터셋에서 직접 추출하거나 고정 (XGBoost 객체에서 추출 권장)
+        feature_names = xgb.get_booster().feature_names
+        
+        return xgb, resnet, scaler, feature_names
     except Exception as e:
-        print(f"❌ [Error] Failed to load models: {e}")
+        st.error(f"모델 로드 실패: {e}")
         return None
 
-    return lgbm, rf, mlp, scaler, feature_names
-
 def predict_churn(data_dict):
-    resources = get_resources()
-    if not resources: return 0, 0, 0, 0
+    res = get_resources()
+    if not res: return 0.0, 0.0, 0.0
+    xgb, resnet, scaler, feature_names = res
     
-    lgbm, rf, mlp, scaler, feature_names = resources
+    # 데이터프레임 생성 및 정렬
+    df = pd.DataFrame([data_dict]).reindex(columns=feature_names, fill_value=0)
     
-    # 1 & 2 & 3. 데이터프레임 생성 및 정렬 최적화
-    # np.zeros로 만들고 루프를 돌리는 것보다 dict를 바로 넣는 것이 더 빠릅니다.
-    df = pd.DataFrame([data_dict])
+    # XGBoost 예측
+    p_xgb = xgb.predict_proba(df)[0][1]
     
-    # 누락된 컬럼은 0으로 채우고, 순서 강제 정렬
-    df = df.reindex(columns=feature_names, fill_value=0)
-    
-    # 4. 예측 수행 (MLP를 위한 스케일링은 한 번만 실행)
-    # N100의 부하를 줄이기 위해 순차적으로 실행
-    p1 = lgbm.predict_proba(df)[0][1]
-    p2 = rf.predict_proba(df)[0][1]
-    
+    # ResNet 예측 (0% 에러 방지용 Sigmoid 처리)
     scaled_df = scaler.transform(df)
-    p3 = mlp.predict_proba(scaled_df)[0][1]
+    input_tensor = torch.tensor(scaled_df, dtype=torch.float32)
+    with torch.no_grad():
+        output = resnet(input_tensor)
+        # 로짓(음수 포함)으로 나올 경우를 대비해 반드시 Sigmoid 적용
+        p_resnet = torch.sigmoid(output).flatten()[0].item()
     
-    avg_p = (p1 + p2 + p3) / 3
-    
-    return p1, p2, p3, avg_p
+    # 하이브리드 결과 (비중 조절 가능)
+    final_score = (p_xgb * 0.6) + (p_resnet * 0.4)
+    return p_xgb, p_resnet, final_score

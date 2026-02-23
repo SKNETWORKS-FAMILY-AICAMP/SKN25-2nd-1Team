@@ -1,95 +1,178 @@
 import streamlit as st
 import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from pathlib import Path
 import plotly.express as px
 import plotly.graph_objects as go
-from pathlib import Path
+from src.eda_interactive import plot_churn_by_category_st, compute_churn_by_quantile_bins, compute_churn_by_bins_equal_width,plot_churn_by_bins_bar_st,plot_churn_by_bins_line_st
 
-# 0. 경로 설정 및 데이터 로드
+# 경로 설정
 ROOT_DIR = Path(__file__).resolve().parents[1]
-DATA_PATH = ROOT_DIR / "data" / "preprocessed" / "kkbox_data.pkl"
+EDA_DATA_DIR = ROOT_DIR / "data" / "preprocessed"
 
 @st.cache_data
-def load_data():
-    df = pd.read_pickle(DATA_PATH)
+def load_eda_summary():
+    # 요약 지표 로드
+    return pd.read_pickle(EDA_DATA_DIR / "eda_summary.pkl")
 
-    return df
-
+@st.cache_data
+def load_tab_data(file_name):
+    # 각 탭에 필요한 요약 데이터 로드
+    return pd.read_pickle(EDA_DATA_DIR / file_name)
 
 def run_eda():
-    df = load_data()
+    # 0. 요약 데이터
+    summary = load_eda_summary()
 
     st.title("📊 데이터 심층 인사이트 (EDA)")
-    st.markdown("사용자 로그에서 발견한 핵심 패턴과 이탈을 결정짓는 결정적 단서를 공개합니다.")
+    st.markdown("미리 계산된 데이터로 인사이트를 빠르게 확인하세요.")
     st.markdown("---")
 
     # 1. 상단 요약 지표
-    st.subheader("📍 데이터 요약 및 가설 검증")
     c1, c2, c3 = st.columns(3)
-    c1.metric("분석 대상 유저", f"{len(df):,} 명", "전체 데이터")
-    churn_rate = (df['is_churn'].mean() * 100)
-    c2.metric("평균 이탈률", f"{churn_rate:.1f}%", "-0.4% (전월 대비)")
-    avg_secs = df['total_secs_mean'].mean()
-    c3.metric("평균 청취 시간", f"{avg_secs:,.0f}초", "일평균 기준")
-    
-    st.info("💡 **핵심 가설**: 서비스 몰입도(청취 시간)와 결제 방식(자동 결제)이 이탈의 핵심 변수일 것이다.")
+    c1.metric("분석 대상 유저", f"{summary['total_users']:,} 명")
+    c2.metric("평균 이탈률", f"{summary['churn_rate']:.1f}%")
+    c3.metric("평균 청취 시간", f"{summary['avg_secs']:,.0f}초")
 
     # 2. 탭 구성
-    tab1, tab2, tab3 = st.tabs(["🔍 핵심 변수 영향력", "🎧 사용 패턴 격차", "💳 결제 및 라이프사이클"])
+    tab1, tab2, tab3 = st.tabs(["🔍 핵심 변수 영향력", "🎧 사용 패턴 격차", "💳데이터 시각화"])
 
     with tab1:
-        st.markdown("### **무엇이 이탈을 결정하는가? (Feature Importance)**")
-        # 실제 모델의 Feature Importance 데이터를 기반으로 차트 생성
-        importance_data = pd.DataFrame({
-            'Feature': ['auto_renew_rate', 'total_secs_mean', 'is_cancel', 'payment_plan_days', 'txn_cnt'],
-            'Importance': [42.5, 31.2, 12.8, 8.5, 5.0]
-        }).sort_values(by='Importance', ascending=True)
+        st.markdown("### 🔍 **모델이 주목한 이탈 핵심 요인 (SHAP)**")
+        st.info("AI 모델이 유저의 이탈을 예측할 때 어떤 변수에 가장 큰 비중을 두었는지 보여줍니다.")
 
-        fig_imp = px.bar(importance_data, x='Importance', y='Feature', orientation='h',
-                         title="이탈 예측 기여도 Top 5",
-                         color='Importance', color_continuous_scale='Reds')
-        st.plotly_chart(fig_imp, use_container_width=True)
-        st.warning("**분석가 코멘트**: '자동 결제' 여부가 압도적입니다. 결제의 편의성이 이탈 방지의 핵심입니다.")
+        # 1. SHAP 중요도 데이터 로드
+        try:
+            df_shap = load_tab_data("top_5_shap_features.pkl")
+            
+            # 시각화를 위해 데이터 정렬 (중요도 높은 순)
+            df_shap = df_shap.sort_values(by='importance', ascending=True)
+
+            # 2. Plotly 수평 바 차트 생성
+            fig_shap = px.bar(
+                df_shap,
+                x='importance',
+                y='feature',
+                orientation='h',
+                title="Top Feature Importance (SHAP Value)",
+                labels={'importance': '평균 영향력 (Mean |SHAP Value|)', 'feature': '변수명'},
+                color='importance',
+                color_continuous_scale='Reds'
+            )
+
+            # 레이아웃 미세 조정
+            fig_shap.update_layout(
+                showlegend=False,
+                height=500,
+                margin=dict(l=20, r=20, t=50, b=20),
+                yaxis={'categoryorder': 'total ascending'}
+            )
+
+            # 차트 출력
+            st.plotly_chart(fig_shap, use_container_width=True)
+
+            # 3. 인사이트 요약
+            st.markdown("#### **📌 분석 결과 해석**")
+            top_1 = df_shap.iloc[-1]['feature']
+            top_2 = df_shap.iloc[-2]['feature']
+            
+            col_a, col_b = st.columns(2)
+            with col_a:
+                st.success(f"**1순위 핵심 지표: {top_1}**\n\n이 지표의 변화가 유저 이탈 예측에 가장 결정적인 역할을 합니다.")
+            with col_b:
+                st.success(f"**2순위 핵심 지표: {top_2}**\n\n해당 수치가 특정 임계치를 넘을 경우 이탈 위험군으로 분류될 가능성이 높습니다.")
+
+        except FileNotFoundError:
+            st.warning("SHAP 결과 파일(top_5_shap_features.pkl)을 찾을 수 없습니다. 분석 스크립트를 먼저 실행해주세요.")
 
     with tab2:
         st.markdown("### **이탈자 vs 유지자: 청취 분포 비교**")
+        # 미리 샘플링된 가벼운 데이터 로드
+        df_sample = load_tab_data("eda_box_plot.pkl")
         
-        # 청취 시간 분포 차트 (Box Plot)
-        fig_box = px.box(df, x='is_churn', y='total_secs_mean', color='is_churn',
-                         labels={'is_churn': '이탈 여부 (0:유지, 1:이탈)', 'total_secs_mean': '평균 청취 시간(초)'},
-                         title="유지/이탈 그룹별 청취 시간 분포")
+        fig_box = px.box(df_sample, x='is_churn', y='total_secs_mean', color='is_churn',
+                         labels={'is_churn': '이탈 여부', 'total_secs_mean': '평균 청취 시간(초)'})
         st.plotly_chart(fig_box, use_container_width=True)
-        
-        st.success("💡 **인사이트**: 이탈 고객은 이탈 전 활동량이 유지 고객 대비 확연히 낮게 형성됩니다.")
 
     with tab3:
-        st.markdown("### **결제 수단 및 가입 기간**")
-        col_p1, col_p2 = st.columns(2)
-        
-        with col_p1:
-            # 자동 결제 여부에 따른 이탈률 비교
-            churn_by_auto = df.groupby('auto_renew_rate')['is_churn'].mean().reset_index()
-            churn_by_auto['is_churn'] *= 100
-            
-            fig_auto = px.pie(churn_by_auto, values='is_churn', names='auto_renew_rate',
-                              title="자동 결제 여부에 따른 이탈 비중",
-                              hole=0.4)
-            st.plotly_chart(fig_auto, use_container_width=True)
-        
-        with col_p2:
-            st.markdown("#### **가입 기간별 전략**")
-            st.write("- **신규**: 이탈 위험 **최상**")
-            st.write("- **성장**: 이탈 위험 **중간**")
-            st.write("- **충성**: 이탈 위험 **최저**")
-            st.caption("※ 초기 3개월 이내 자동 결제 전환이 핵심")
+        plt.rcParams["figure.figsize"] = (10, 4)
+        plt.rcParams["axes.grid"] = True
 
-    # 3. 마무리 결론
-    st.markdown("---")
-    st.subheader("🎯 데이터 기반 마케팅 방향성")
-    st.markdown("""
-    1. **Target**: 일평균 청취 시간이 급감한 유저 집중 관리
-    2. **Offer**: 수동 결제 유저 대상 자동 결제 전환 프로모션
-    3. **Timing**: 활동성 급감 후 **'D-10' 골든타임** 사수
-    """)
+        TARGET = "is_churn"
 
-if __name__ == "__main__":
-    run_eda()
+        df = load_tab_data("kkbox_data.pkl")
+        st.markdown("### **데이터 시각화**")
+        st.caption("버튼을 눌러 선택한 변수 기준으로 이탈률 그래프를 생성합니다. (matplotlib)")
+
+
+        st.subheader("1) 카테고리 변수별 이탈률 (Bar)")
+
+        # 후보 컬럼: 범주형/오브젝트/카테고리만 자동 후보로
+        cat_candidates = ['gender','age_group','registered_via']
+
+
+        if len(cat_candidates) == 0:
+            st.info("범주형 컬럼(object/category)이 없어 카테고리 그래프 후보가 없습니다.")
+        else:
+            cat_col = st.selectbox("컬럼 선택", cat_candidates, index=0)
+            top_n = st.slider("상위 N개만 표시", 5, 50, 20, step=5)
+            min_n = st.number_input("최소 표본수(min_n) 필터", min_value=1, value=100, step=50)
+            sort_by = st.radio("정렬 기준", ["churn", "n"], horizontal=True,
+                            format_func=lambda x: "이탈률 높은 순" if x == "churn" else "표본 많은 순")
+
+            run_cat = st.button("📊 카테고리 그래프 생성", use_container_width=True)
+
+            if run_cat:
+                fig, g = plot_churn_by_category_st(
+                    df=df,
+                    col=cat_col,
+                    top_n=int(top_n),
+                    min_n=int(min_n),
+                    sort_by=sort_by
+                )
+                if fig is not None:
+                    st.pyplot(fig, clear_figure=True)
+
+        st.markdown("---")
+        st.subheader("2) 수치형 변수 bin별 이탈률 (Line/Bar)")
+
+        num_candidates = ['total_paid','total_secs_sum']
+
+        if len(num_candidates) == 0:
+            st.info("수치형 컬럼(number)이 없어 bin 그래프 후보가 없습니다.")
+        else:
+            num_col = st.selectbox("수치형 컬럼 선택", num_candidates, index=0)
+
+            bin_mode = st.radio(
+                "bin 방식",
+                ["Quantile(qcut)", "Equal-width(등폭)"],
+                horizontal=True
+            )
+
+            chart_type = st.radio("차트 타입", ["Line", "Bar"], horizontal=True)
+
+            if bin_mode == "Quantile(qcut)":
+                q = st.slider("q (분위수 bin 개수)", 4, 20, 10)
+                run_num = st.button("📈 수치형(bin) 그래프 생성", use_container_width=True)
+
+                if run_num:
+                    g = compute_churn_by_quantile_bins(df, num_col, q=int(q))
+                    title = f"Churn rate by {num_col} quantile bins (q={q})"
+                    fig = plot_churn_by_bins_line_st(g, title) if chart_type == "Line" else plot_churn_by_bins_bar_st(g, title)
+                    if fig is not None:
+                        st.pyplot(fig, clear_figure=True)
+
+
+
+            else:
+                # 등폭(특히 auto_renew_rate 같은 0~1 비율 변수에 적합)
+                width = st.select_slider("등폭 width", options=[0.05, 0.1, 0.2, 0.25], value=0.2)
+                run_num = st.button("📈 수치형(등폭) 그래프 생성", use_container_width=True)
+
+                if run_num:
+                    g = compute_churn_by_bins_equal_width(df, num_col, width=float(width))
+                    title = f"Churn rate by {num_col} equal-width bins (width={width})"
+                    fig = plot_churn_by_bins_line_st(g, title) if chart_type == "Line" else plot_churn_by_bins_bar_st(g, title)
+                    if fig is not None:
+                        st.pyplot(fig, clear_figure=True)

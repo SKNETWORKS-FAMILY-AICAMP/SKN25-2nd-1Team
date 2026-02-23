@@ -1,15 +1,16 @@
 import streamlit as st
 
 def run_strategy():
-    # '리텐션' 대신 '고객 유지'와 '단골 지키기'라는 표현 사용
+    # 1. 헤더 설정
     st.title("💡 우리 서비스 단골 고객 지키기 전략")
     st.markdown("##### **XGBoost & ResNet AI 분석으로 찾은 고객 유지(Retention) 가이드**")
     st.markdown("---")
 
-    # 1. 시뮬레이션 결과 연동
+    # 2. 시뮬레이션 결과 연동
     if st.session_state.get('predict_done'):
         res = st.session_state.result_data
-        risk_score = res['scores'][-1] * 100
+        # float32 에러 방지를 위해 float() 변환 추가
+        risk_score = float(res['scores'][-1]) * 100
         
         st.success(f"✅ 현재 유저 진단 결과(이탈 위험: {risk_score:.1f}%)를 바탕으로 산출된 맞춤 전략입니다.")
         
@@ -18,11 +19,11 @@ def run_strategy():
         c1.metric("예상되는 매출 방어", "약 12.8만 원", "1년 더 이용할 때의 가치")
         c2.metric("마케팅 효율", "4.2배", "비용 대비 이득")
     else:
-        st.info("ℹ️ '이탈 시뮬레이터'에서 유저를 먼저 분석하면 실제 수치가 나타납니다.")
+        st.info("ℹ️ '이탈 시뮬레이터'에서 유저를 먼저 분석하면 실제 수치 기반의 전략이 나타납니다.")
 
     st.markdown("---")
 
-    # 2. 어디에 더 집중해야 할까요? (리소스 최적화)
+    # 3. 리소스 최적화 전략
     st.subheader("2. 어떤 고객에게 더 집중해야 할까요?")
     st.write("데이터 분석 결과, **'정기 결제'를 안 하거나 '노래 듣는 시간'이 줄어든 고객**을 먼저 챙겨야 합니다.")
     
@@ -43,14 +44,17 @@ def run_strategy():
         st.markdown("""
         <div style="background-color:#f0f2f6; padding:15px; border-radius:10px;">
         <strong>📋 분석가 총평 (핵심 요약)</strong><br>
-        유저가 떠나지 않게 만드는 가장 큰 힘은 <strong>'정기 결제'</strong> 설정이었습니다. 결제가 편해질수록 고객들은 우리 서비스를 더 오래 사랑해 주십니다.
+        유저가 떠나지 않게 만드는 가장 큰 힘은 <strong>'정기 결제'</strong> 설정이었습니다. 
+        결제가 편해질수록 고객들은 우리 서비스를 더 오래 사랑해 주십니다.
         </div>
         """, unsafe_allow_html=True)
 
     st.markdown("---")
 
-    # 3. 실천 가이드 (Action Plan)
+    # 4. 실천 가이드 (Action Plan)
     st.subheader("3. 고객의 마음을 잡기 위해 바로 해야 할 일")
+    
+    # [수정] SyntaxError를 일으켰던 이미지 텍스트를 삭제했습니다.
     
     with st.expander("📅 지금 당장: 떠나려는 고객 붙잡기", expanded=True):
         st.write("**대상**: 정기 결제를 취소했거나 곧 결제일이 다가오는 분들")
