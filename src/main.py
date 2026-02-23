@@ -1,23 +1,29 @@
 import os
+from pathlib import Path
 import pickle
-from src.data_loader import load_data
-from src.preprocessing import preprocess_for_modeling
-from src.model_train import train_model
-from src.model_eval import evaluate_model, plot_shap_values
+from data_loader import load_data
+from preprocessing import preprocess_for_modeling
+from model_train import train_model
+from model_eval import evaluate_model, plot_shap_values
 
 def main():
     print("="*50)
     print("KKBox 이탈 예측 파이프라인")
     print("="*50)
+
+    # 🔹 1. 프로젝트 루트 (현재 파일 기준 부모 폴더로 한 번 이동)
+    ROOT_DIR = Path(__file__).resolve().parent.parent
     
-    # 1. 설정
-    data_path = "kkbox_v3.parquet"
-    if not os.path.exists(data_path):
-        # data 폴더 확인
-        data_path = os.path.join("data", "kkbox_v3.parquet")
-        if not os.path.exists(data_path):
-            print("경고: Parquet 파일을 찾을 수 없습니다. 사용 가능한 경우 .pkl로 대체합니다.")
-            data_path = "kkbox_v3.pkl"
+    # 🔹 2. data 디렉토리 설정
+    DATA_DIR = ROOT_DIR / "data"
+
+    # 🔹 3. parquet 파일 경로
+    data_path = DATA_DIR / "kkbox_v3.parquet"
+
+    if not data_path.exists():
+        print("⚠️ Parquet 파일을 찾을 수 없습니다. pkl로 대체 시도합니다.")
+        data_path = DATA_DIR / "kkbox_v3.pkl"
+
 
     # 2. 데이터 로드
     try:
