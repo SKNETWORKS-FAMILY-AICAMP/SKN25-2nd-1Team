@@ -48,11 +48,21 @@ def run_predict():
 
     # 3. AI 진단 실행 (XGBoost & ResNet)
     if st.button("🚀 하이브리드 AI 분석 시작", use_container_width=True):
-        with st.spinner('XGBoost(트리) & ResNet(딥러닝) 엔진 가동 중...'):
-            # model_loader에서 [p_xgb, p_resnet, final_score] 형태로 반환한다고 가정
-            results = predict_churn(input_data)
-            st.session_state.result_data = {'scores': results, 'input': input_data}
-            st.session_state.predict_done = True
+        try:
+            with st.spinner('XGBoost(트리) & ResNet(딥러닝) 엔진 가동 중...'):
+                # 실제 분석 함수 호출
+                results = predict_churn(input_data)
+                
+                # 결과 저장 및 상태 업데이트
+                st.session_state.result_data = {'scores': results, 'input': input_data}
+                st.session_state.predict_done = True
+                
+        except Exception as e:
+            # 코드가 화면에 뜨지 않게 막고, 친절한 안내 메시지만 띄웁니다.
+            st.error("⚠️ 분석 엔진 가동 중 일시적인 오류가 발생했습니다.")
+            st.info("모델 파일(.pkl)이 정확한 경로에 있는지 확인해주세요.")
+            # 개발용 로그는 터미널에만 출력합니다.
+            print(f"Error details: {e}")
 
     # 4. 분석 결과 출력
     if st.session_state.predict_done:
