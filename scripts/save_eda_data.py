@@ -9,8 +9,6 @@ def prepare_eda_data():
     DATA_PATH = ROOT_DIR / "data" / "kkbox_v3.parquet"
     SAVE_PATH = ROOT_DIR / "data" / "preprocessed"
 
-    # 폴더가 없으면 생성
-    SAVE_PATH.mkdir(parents=True, exist_ok=True)
     
     print("데이터 로딩 중...")
     df = pd.read_parquet(DATA_PATH)
@@ -45,7 +43,6 @@ def prepare_eda_data():
     num_candidates = ['total_paid', 'total_secs_sum']
     num_df_light = df[num_candidates + [TARGET]].copy()
     
-    # 메모리 절약을 위해 float64 -> float32 등 형변환 고려 가능
     pd.to_pickle(num_df_light, SAVE_PATH / "eda_num_light.pkl")
 
     print(f"EDA 전용 요약 데이터 완료 (위치: {SAVE_PATH})")

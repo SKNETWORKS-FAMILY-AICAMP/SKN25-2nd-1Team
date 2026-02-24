@@ -34,13 +34,6 @@ def set_korean_font():
 # =========================
 # Plot 함수들 (Streamlit용)
 # =========================
-def compute_churn_by_category(df: pd.DataFrame, col: str, min_n: int = 100):
-    g = (df.groupby(col)[TARGET]
-           .agg(churn_rate="mean", n="size")
-           .reset_index())
-    g["churn_rate"] *= 100
-    g = g[g["n"] >= min_n].copy()
-    return g
 
 def plot_churn_style_st(df_plot, x_col, title, palette="viridis"):
     # 한글 폰트 재설정
@@ -81,71 +74,5 @@ def plot_churn_style_st(df_plot, x_col, title, palette="viridis"):
     ax1.yaxis.grid(True, linestyle='--', alpha=0.6)
     ax1.set_axisbelow(True) # 그리드를 막대 뒤로
     
-    plt.tight_layout()
-    return fig
-
-def compute_churn_by_bins_equal_width(df: pd.DataFrame, col: str, width: float = 0.2):
-    """
-    auto_renew_rate 같은 '0~1 비율' 변수에 추천:
-    0.2 단위 등폭 bin
-    """
-    tmp = df[[col, TARGET]].copy()
-    tmp[col] = pd.to_numeric(tmp[col], errors="coerce").fillna(0)
-
-    # 등폭 bin 만들기 (0~1 가정)
-    start = 0.0
-    end = 1.0
-    bins = np.arange(start, end + width, width)
-    # 혹시 값이 1.0을 조금 넘는 경우 포함
-    tmp["_val_clip"] = tmp[col].clip(lower=start, upper=end)
-
-    tmp["bin"] = pd.cut(tmp["_val_clip"], bins=bins, include_lowest=True, right=True)
-
-    g = (tmp.groupby("bin")[TARGET]
-            .agg(churn_rate="mean", n="size")
-            .reset_index())
-    g["churn_rate"] *= 100
-    return g
-
-
-def compute_churn_by_quantile_bins(df: pd.DataFrame, col: str, q: int = 10):
-    tmp = df[[col, TARGET]].copy()
-    tmp[col] = pd.to_numeric(tmp[col], errors="coerce").fillna(0)
-
-    # 동일값 많으면 qcut이 bin 개수 줄일 수 있음
-    tmp["bin"] = pd.qcut(tmp[col], q=q, duplicates="drop")
-
-    g = (tmp.groupby("bin")[TARGET]
-            .agg(churn_rate="mean", n="size")
-            .reset_index())
-    g["churn_rate"] *= 100
-    return g
-
-
-def plot_churn_by_bins_line_st(g: pd.DataFrame, title: str):
-    if g.empty:
-        st.warning("표시할 bin 결과가 없어요.")
-        return None
-
-    fig, ax = plt.subplots()
-    ax.plot(np.arange(len(g)), g["churn_rate"], marker="o")
-    ax.set_xticks(np.arange(len(g)))
-    ax.set_xticklabels(g["bin"].astype(str), rotation=45, ha="right")
-    ax.set_ylabel("Churn rate (%)")
-    ax.set_title(title)
-    plt.tight_layout()
-    return fig
-
-
-def plot_churn_by_bins_bar_st(g: pd.DataFrame, title: str):
-    if g.empty:
-        st.warning("표시할 bin 결과가 없어요.")
-        return None
-
-    fig, ax = plt.subplots()
-    ax.bar(g["bin"].astype(str), g["churn_rate"])
-    ax.set_ylabel("Churn rate (%)")
-    ax.set_title(title)
-    ax.tick_params(axis="x", rotation=45)
     plt.tight_layout()
     return fig
