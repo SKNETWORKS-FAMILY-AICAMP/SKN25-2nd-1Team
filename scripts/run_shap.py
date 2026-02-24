@@ -5,13 +5,19 @@ from lightgbm import LGBMClassifier
 from sklearn.model_selection import train_test_split
 import os
 import sys
+from pathlib import Path
+
+# 경로 정리
+ROOT_DIR = Path(__file__).resolve().parent.parent
+DATA_DIR = ROOT_DIR / "data"
+data_path = DATA_DIR / "kkbox_v3.parquet"
 
 sys.path.append(os.path.abspath('src'))
-from preprocessing import preprocess_for_modeling
-from data_loader import load_data
+from src.preprocessing import preprocess_for_modeling
+from src.data_loader import load_data
 
 print("데이터 로딩 중...")
-df = load_data('data/kkbox_v3.parquet')
+df = load_data(data_path)
 X, y = preprocess_for_modeling(df)
 
 X_tr, X_va, y_tr, y_va = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)

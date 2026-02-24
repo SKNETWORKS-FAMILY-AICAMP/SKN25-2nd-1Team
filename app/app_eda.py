@@ -5,26 +5,32 @@ import seaborn as sns
 from pathlib import Path
 import plotly.express as px
 import plotly.graph_objects as go
-from src.eda_interactive import plot_churn_by_category_st, compute_churn_by_quantile_bins, compute_churn_by_bins_equal_width,plot_churn_by_bins_bar_st,plot_churn_by_bins_line_st
+import platform
+from matplotlib import font_manager, rc
+from src.eda_interactive import plot_churn_style_st, set_korean_font
+
+# 전역 스타일 설정
+plt.rcParams["axes.grid"] = True
+TARGET = "is_churn"
 
 # 경로 설정
 ROOT_DIR = Path(__file__).resolve().parents[1]
 EDA_DATA_DIR = ROOT_DIR / "data" / "preprocessed"
 
-@st.cache_data
-def load_eda_summary():
-    # 요약 지표 로드
-    return pd.read_pickle(EDA_DATA_DIR / "eda_summary.pkl")
 
-@st.cache_data
+
+# 탭 실행 전 호출
+set_korean_font()
+
+
+@st.cache_data 
 def load_tab_data(file_name):
     # 각 탭에 필요한 요약 데이터 로드
     return pd.read_pickle(EDA_DATA_DIR / file_name)
 
 def run_eda():
     # 0. 요약 데이터
-    summary = load_eda_summary()
-
+    summary = load_tab_data("eda_summary.pkl")
     st.title("📊 데이터 심층 인사이트 (EDA)")
     st.markdown("미리 계산된 데이터로 인사이트를 빠르게 확인하세요.")
     st.markdown("---")
@@ -33,14 +39,17 @@ def run_eda():
     c1, c2, c3 = st.columns(3)
     c1.metric("분석 대상 유저", f"{summary['total_users']:,} 명")
     c2.metric("평균 이탈률", f"{summary['churn_rate']:.1f}%")
-    c3.metric("평균 청취 시간", f"{summary['avg_secs']:,.0f}초")
+    c3.metric("평균 청취 시간", f"{summary['avg_secs'] / 60:,.1f}분")
 
     # 2. 탭 구성
-    tab1, tab2, tab3 = st.tabs(["🔍 핵심 변수 영향력", "🎧 사용 패턴 격차", "💳데이터 시각화"])
+    tab1, tab2, tab3 = st.tabs(["🔍 핵심 변수 영향력", "🎧이탈 핵심 요인 탐색", "💳데이터 시각화"])
 
+    ### ===========================================================================================
+    ### Tab1 : Shap 기반 이탈 요인 확인하기.
+    ### =========================================================================================== 
     with tab1:
-        st.markdown("### 🔍 **모델이 주목한 이탈 핵심 요인 (SHAP)**")
-        st.info("AI 모델이 유저의 이탈을 예측할 때 어떤 변수에 가장 큰 비중을 두었는지 보여줍니다.")
+        st.markdown("### 🔍 **모델이 주목한 이탈 핵심 요인**")
+        st.info("XGBoost 모델을 활용하여 사용자의 이탈을 예측할 때 어떤 변수에 가장 큰 비중을 두었는지 보여줍니다.")
 
         # 1. SHAP 중요도 데이터 로드
         try:
@@ -55,8 +64,8 @@ def run_eda():
                 x='importance',
                 y='feature',
                 orientation='h',
-                title="Top Feature Importance (SHAP Value)",
-                labels={'importance': '평균 영향력 (Mean |SHAP Value|)', 'feature': '변수명'},
+                title="이탈 핵심 변수 영향력",
+                labels={'importance': '평균 영향력', 'feature': '변수명'},
                 color='importance',
                 color_continuous_scale='Reds'
             )
@@ -85,94 +94,107 @@ def run_eda():
 
         except FileNotFoundError:
             st.warning("SHAP 결과 파일(top_5_shap_features.pkl)을 찾을 수 없습니다. 분석 스크립트를 먼저 실행해주세요.")
-
+    
+    ### ===========================================================================================
+    ### Tab2 : PDP 기반 이탈 요인 확인하기.
+    ### =========================================================================================== 
     with tab2:
-        st.markdown("### **이탈자 vs 유지자: 청취 분포 비교**")
-        # 미리 샘플링된 가벼운 데이터 로드
-        df_sample = load_tab_data("eda_box_plot.pkl")
+        st.markdown("### **이탈 핵심 요인 탐색**")
+        # df_sample = load_tab_data("eda_box_plot.pkl")
         
-        fig_box = px.box(df_sample, x='is_churn', y='total_secs_mean', color='is_churn',
-                         labels={'is_churn': '이탈 여부', 'total_secs_mean': '평균 청취 시간(초)'})
-        st.plotly_chart(fig_box, use_container_width=True)
+        # fig_box = px.box(df_sample, x='is_churn', y='total_secs_mean', color='is_churn',
+        #                  labels={'is_churn': '이탈 여부', 'total_secs_mean': '평균 청취 시간(초)'})
+        # st.plotly_chart(fig_box, use_container_width=True)
 
+    ### ===========================================================================================
+    ### Tab3 : 카테고리별 & 수치별 데이터 시각화 제공 탭.
+    ### =========================================================================================== 
+    ### ===========================================================================================
+    ### Tab3 : 카테고리별 & 수치별 데이터 시각화 제공 탭.
+    ### =========================================================================================== 
     with tab3:
-        plt.rcParams["figure.figsize"] = (10, 4)
-        plt.rcParams["axes.grid"] = True
-
-        TARGET = "is_churn"
-
-        df = load_tab_data("kkbox_data.pkl")
         st.markdown("### **데이터 시각화**")
-        st.caption("버튼을 눌러 선택한 변수 기준으로 이탈률 그래프를 생성합니다. (matplotlib)")
+        st.caption("사전 가공된 집계 데이터를 활용하여 변수별 이탈률을 시각화합니다.")
+        
+        # 전역 스타일 설정
+        plt.rcParams["axes.grid"] = True
+        TARGET = "is_churn"
+        
+        # ---------------------------------------------------------
+        # 1) 카테고리 변수별 이탈률 (사전 집계 데이터 사용)
+        # ---------------------------------------------------------
+        st.subheader("1) 카테고리 변수별 이탈률")
+        try:
+            cat_summary = pd.read_pickle(EDA_DATA_DIR / "eda_cat_summary.pkl")
+            cat_candidates = list(cat_summary.keys())
 
-
-        st.subheader("1) 카테고리 변수별 이탈률 (Bar)")
-
-        # 후보 컬럼: 범주형/오브젝트/카테고리만 자동 후보로
-        cat_candidates = ['gender','age_group','registered_via']
-
-
-        if len(cat_candidates) == 0:
-            st.info("범주형 컬럼(object/category)이 없어 카테고리 그래프 후보가 없습니다.")
-        else:
-            cat_col = st.selectbox("컬럼 선택", cat_candidates, index=0)
-            top_n = st.slider("상위 N개만 표시", 5, 50, 20, step=5)
-            min_n = st.number_input("최소 표본수(min_n) 필터", min_value=1, value=100, step=50)
-            sort_by = st.radio("정렬 기준", ["churn", "n"], horizontal=True,
-                            format_func=lambda x: "이탈률 높은 순" if x == "churn" else "표본 많은 순")
+            col1, col2 = st.columns(2)
+            with col1:
+                cat_col = st.selectbox("컬럼 선택", cat_candidates, index=0, key="cat_select")
+                top_n = st.slider("상위 N개만 표시", 5, 50, 20, step=5)
+            with col2:
+                min_n = st.number_input("최소 표본수 필터", min_value=1, value=100, step=50)
+                sort_by = st.radio("정렬 기준", ["churn", "n"], horizontal=True,
+                                   format_func=lambda x: "이탈률 높은 순" if x == "churn" else "표본 많은 순")
 
             run_cat = st.button("📊 카테고리 그래프 생성", use_container_width=True)
 
             if run_cat:
-                fig, g = plot_churn_by_category_st(
-                    df=df,
-                    col=cat_col,
-                    top_n=int(top_n),
-                    min_n=int(min_n),
-                    sort_by=sort_by
-                )
-                if fig is not None:
+                g = cat_summary[cat_col].copy()
+                g = g[g['n'] >= min_n] # 필터링 로직 유지
+                
+                if sort_by == "churn":
+                    g = g.sort_values("churn_rate", ascending=False)
+                else:
+                    g = g.sort_values("n", ascending=False)
+                
+                g = g.head(top_n)
+                
+                if g.empty:
+                    st.warning("조건에 맞는 데이터가 없습니다 (최소 표본수 필터를 확인하세요).")
+                else:
+                    # 표본 수(Line)가 제거된 새로운 스타일의 함수 호출
+                    fig = plot_churn_style_st(g, cat_col, f"카테고리별 이탈률: {cat_col}", palette="magma")
                     st.pyplot(fig, clear_figure=True)
+                    
+                    # (선택 사항) 표본 수를 확인하고 싶을 사용자를 위해 데이터프레임 하단 출력
+                    with st.expander("상세 데이터 보기"):
+                        st.dataframe(g.style.format({'churn_rate': '{:.2%}', 'n': '{:,}'}))
+
+        except FileNotFoundError:
+            st.error("사전 가공된 카테고리 데이터(eda_cat_summary.pkl)를 찾을 수 없습니다.")
 
         st.markdown("---")
-        st.subheader("2) 수치형 변수 bin별 이탈률 (Line/Bar)")
+        # ---------------------------------------------------------
+        # 2) 수치형 변수 bin별 이탈률 
+        # ---------------------------------------------------------
+        st.subheader("2) 수치형 변수 구간별 이탈률")
 
-        num_candidates = ['total_paid','total_secs_sum']
+        try:
+            # 경량화된 수치 데이터 로드
+            df_num_light = pd.read_pickle(EDA_DATA_DIR / "eda_num_light.pkl")
+            num_candidates = [c for c in df_num_light.columns if c != TARGET]
 
-        if len(num_candidates) == 0:
-            st.info("수치형 컬럼(number)이 없어 bin 그래프 후보가 없습니다.")
-        else:
-            num_col = st.selectbox("수치형 컬럼 선택", num_candidates, index=0)
+            col1, col2 = st.columns(2)
+            with col1:
+                num_col = st.selectbox("수치형 컬럼 선택", num_candidates, index=0, key="num_select")
+            with col2:
+                q_val = st.slider("구간 수", 4, 20, 10)
 
-            bin_mode = st.radio(
-                "bin 방식",
-                ["Quantile(qcut)", "Equal-width(등폭)"],
-                horizontal=True
-            )
+            run_num = st.button("📈 수치형 구간 그래프 생성", use_container_width=True)
 
-            chart_type = st.radio("차트 타입", ["Line", "Bar"], horizontal=True)
+            if run_num:
+                # [경량 데이터를 실시간 구간화] - 전체 로드보다 훨씬 빠름
+                df_tmp = df_num_light[[num_col, TARGET]].copy()
+                df_tmp['bin'] = pd.qcut(df_tmp[num_col], q=q_val, duplicates='drop').astype(str)
+                
+                g = df_tmp.groupby('bin')[TARGET].agg(['mean', 'count']).reset_index()
+                g.columns = ['bin', 'churn_rate', 'n']
+                g = g.sort_values('bin')
 
-            if bin_mode == "Quantile(qcut)":
-                q = st.slider("q (분위수 bin 개수)", 4, 20, 10)
-                run_num = st.button("📈 수치형(bin) 그래프 생성", use_container_width=True)
-
-                if run_num:
-                    g = compute_churn_by_quantile_bins(df, num_col, q=int(q))
-                    title = f"Churn rate by {num_col} quantile bins (q={q})"
-                    fig = plot_churn_by_bins_line_st(g, title) if chart_type == "Line" else plot_churn_by_bins_bar_st(g, title)
-                    if fig is not None:
-                        st.pyplot(fig, clear_figure=True)
-
-
-
-            else:
-                # 등폭(특히 auto_renew_rate 같은 0~1 비율 변수에 적합)
-                width = st.select_slider("등폭 width", options=[0.05, 0.1, 0.2, 0.25], value=0.2)
-                run_num = st.button("📈 수치형(등폭) 그래프 생성", use_container_width=True)
-
-                if run_num:
-                    g = compute_churn_by_bins_equal_width(df, num_col, width=float(width))
-                    title = f"Churn rate by {num_col} equal-width bins (width={width})"
-                    fig = plot_churn_by_bins_line_st(g, title) if chart_type == "Line" else plot_churn_by_bins_bar_st(g, title)
-                    if fig is not None:
-                        st.pyplot(fig, clear_figure=True)
+                title = f"Churn Rate by {num_col} {q_val} Bins)"
+                fig = plot_churn_style_st(g, 'bin', title, palette="viridis")
+                st.pyplot(fig, clear_figure=True)
+                
+        except FileNotFoundError:
+            st.error("사전 가공된 수치형 데이터(eda_num_light.pkl)를 찾을 수 없습니다.")
