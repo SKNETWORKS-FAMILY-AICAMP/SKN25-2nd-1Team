@@ -14,17 +14,17 @@ def run_predict():
     if 'result_data' not in st.session_state:
         st.session_state.result_data = None
 
-    # 2. 시뮬레이션 설정 섹션
+    # 2. 시뮬레이션 대상 설정 섹션
     with st.container():
         st.subheader("👤 시뮬레이션 대상 설정")
         col1, col2 = st.columns(2)
         
         with col1:
-            # 자동 갱신 여부
+            # 정기 결제 설정
             auto_label = st.radio("💳 정기 결제(자동 갱신) 설정", ["활성 (구독 중)", "해지 (만료 예정)"], horizontal=True)
             auto_renew = 1.0 if "활성" in auto_label else 0.0
             
-            # 청취 시간 설정 및 직관적 가이드
+            # [직관적 설명 추가] 청취 시간 슬라이더
             total_mins = st.slider("🎧 일평균 노래 청취 시간 (분)", 0, 720, 30, step=1)
             if total_mins == 0:
                 st.caption("👻 **Status: Inactive** - 접속 기록이 없는 이탈 고위험군입니다.")
@@ -38,11 +38,11 @@ def run_predict():
             total_secs = float(total_mins * 60)
             
         with col2:
-            # 해지 시도 비율 (심리적 단계)
+            # [직관적 설명 추가] 해지 시도 비율 슬라이더
             cancel_rate = st.slider(
                 "⚠️ 서비스 이탈 징후 (과거 해지 시도 확률)", 
                 0.0, 1.0, 0.1, step=0.01,
-                help="과거 해지 페이지 방문이나 혜택 팝업 노출 등 이탈 고민 흔적을 수치화한 지표입니다."
+                help="과거 해지 페이지 방문 흔적 등을 수치화한 지표입니다."
             )
             if cancel_rate < 0.2:
                 st.write("😇 유저 심리: **평온 (만족하며 이용 중)**")
@@ -51,7 +51,7 @@ def run_predict():
             else:
                 st.write("🚨 유저 심리: **위험 (해지 버튼 클릭 직전 상태)**")
 
-            # 누적 결제 횟수 (숙련도 및 로열티 단계)
+            # [직관적 설명 추가] 누적 결제 횟수 슬라이더
             txn_cnt = st.slider(
                 "💰 누적 결제 횟수 (회)", 1, 100, 10, step=1,
                 help="결제 횟수는 유저의 '서비스 숙련도'와 '브랜드 로열티'를 상징합니다."
@@ -61,11 +61,11 @@ def run_predict():
             elif txn_cnt <= 12:
                 st.caption("🏃 **Stage: Settled** - 1년 내외 이용자로 안정적인 구독 단계입니다.")
             elif txn_cnt <= 36:
-                st.caption("💎 **Stage: Loyal** - 3년 이상 이용한 핵심 고객이나 권태기가 올 수 있습니다.")
+                st.caption("💎 **Stage: Loyal** - 3년 이상 이용한 핵심 고객입니다.")
             else:
                 st.caption("👑 **Stage: VIP** - 강력한 팬덤을 가진 최상위 등급 유저입니다.")
 
-    # 3. 데이터 조립 및 AI 진단 (XGBoost & ResNet 하이브리드)
+    # 3. 데이터 조립 및 AI 진단
     input_data = {
         'is_auto_renew': auto_renew, 
         'total_secs_mean': total_secs, 
@@ -81,16 +81,20 @@ def run_predict():
     if st.button("🚀 AI 하이브리드 전략 진단 시작", use_container_width=True, type="primary"):
         try:
             with st.spinner('AI 분석 엔진이 최적의 대응 전략을 도출 중입니다...'):
-                # AI 모델 예측 호출 (부트캠프에서 학습한 모델 기반)
                 p_xgb, p_resnet, _ = predict_churn(input_data)
                 
-                # 유저 숙련도(txn_cnt)에 따른 가중치 동적 조절
+                # 가중치 로직
                 w_xgb, w_resnet = (0.7, 0.3) if txn_cnt >= 5 else (0.3, 0.7)
                 final_score = (p_xgb * w_xgb) + (p_resnet * w_resnet)
                 
+                # [🚨 KeyError 해결 핵심] app_strategy.py에서 요구하는 'scores' 리스트를 생성합니다.
                 st.session_state.result_data = {
-                    'p_xgb': float(p_xgb), 'p_resnet': float(p_resnet),
-                    'final_score': float(final_score), 'w_xgb': w_xgb, 'w_resnet': w_resnet,
+                    'p_xgb': float(p_xgb), 
+                    'p_resnet': float(p_resnet),
+                    'final_score': float(final_score), 
+                    'scores': [float(final_score)], # 비즈니스 전략 페이지 필수 키값
+                    'w_xgb': w_xgb, 
+                    'w_resnet': w_resnet,
                 }
                 st.session_state.predict_done = True
                 st.toast("✅ 분석 및 맞춤 전략 도출이 완료되었습니다!")
@@ -100,12 +104,12 @@ def run_predict():
     # 4. 분석 리포트 출력
     if st.session_state.predict_done:
         res = st.session_state.result_data
-        risk_score = res['final_score'] * 100
+        # scores 리스트에서 값을 가져오도록 안전하게 변경
+        risk_score = res['scores'][-1] * 100 
 
         st.markdown("---")
         st.subheader("📊 AI 하이브리드 진단 리포트")
         
-        # 위험 등급 분류
         if risk_score > 80:
             status, color = "초고위험 (Critical)", "red"
         elif risk_score > 40:
@@ -120,7 +124,7 @@ def run_predict():
         m2.metric("통계 기반 점수 (XGB)", f"{res['p_xgb']*100:.1f}%")
         m3.metric("패턴 기반 점수 (ResNet)", f"{res['p_resnet']*100:.1f}%")
 
-        st.progress(res['final_score'])
+        st.progress(res['scores'][-1])
 
         # 5. 시각화 차트
         col_c1, col_c2 = st.columns(2)
@@ -144,165 +148,42 @@ def run_predict():
             fig_bar.update_layout(height=280, margin=dict(l=0, r=0, t=20, b=0), coloraxis_showscale=False)
             st.plotly_chart(fig_bar, use_container_width=True)
 
-        # 🛠️ 6. AI 전략 실행 계획
+        # 6. AI 전략 실행 계획 (탭 분리)
         st.markdown("---")
         st.subheader("🛠️ AI 전략 실행 계획 (기업 맞춤형 제안)")
         st.caption("유저 세그먼트별 데이터 분석 결과를 바탕으로 도출된 비즈니스 액션 플랜입니다.")
 
-        t1, t2, t3, t4 = st.tabs(["💰 수익성 전략", "🎨 경험 강화", "🤝 고객 케어", "📈 실행 효과"])
+        t1, t2, t3 = st.tabs(["💰 수익성 전략", "🎨 경험 강화", "🤝 고객 케어"])
 
         with t1:
             st.markdown("#### **1. 매출 최적화 및 결제 유지 전략**")
             if txn_cnt > 36:
-                st.markdown("#### **[VIP 고객] 최상위 유지(Retention) 전략**")
-                st.write("- **목표**: 3년+ 장기 고객의 이탈 방지")
-                st.write("- **전략**:")
-                st.write("  1️⃣ 장기 결제 감사 캠페인 (분기별 '감사 이벤트' 개최)")
-                st.write("  2️⃣ 프리미엄 전용 혜택 (HD 음질, 독점 플레이리스트, 우선 지원)")
-                st.write("  3️⃣ 커뮤니티 리더 권한 부여 (베타 테스터, 피드백 그룹)")
-                st.write("- **예상 효과**: 이탈률 80% 감소, LTV 35% 증대")
-            elif txn_cnt <= 3:
-                st.markdown("#### **[신규 고객] 초기 정착 및 재결제 유도**")
-                st.write("- **목표**: 가입 후 3개월 내 정기 결제 전환")
-                st.write("- **전략**:")
-                st.write("  1️⃣ 온보딩 보너스 (첫 결제 시 추가 30일 무료)")
-                st.write("  2️⃣ 초기 5회 결제 마일리지 (누적 보상으로 6번째 결제 50% 할인)")
-                st.write("  3️⃣ 맞춤 장르 추천 (가입 시 취향 설문 기반 플레이리스트)")
-                st.write("- **예상 효과**: 신규 재결제율 45% → 68%, 이탈률 50% 감소")
-            
-            if auto_renew == 0:
-                st.error("#### **⚠️ [긴급] 자동 결제 미설정 고객 전환 캠페인**")
-                st.write("- **중요도**: 🔴 **CRITICAL** (미설정 고객의 이탈률: 평균의 2배)")
-                st.write("- **전략**:")
-                st.write("  1️⃣ 즉시 인센티브 (자동 결제 전환 시 '6개월간 결제액 20% 페이백')")
-                st.write("  2️⃣ UX 개선 (결제 프로세스 단계 50% 단축 + 1-클릭 구독)")
-                st.write("  3️⃣ 신뢰 메시징 (결제 내역 투명성, 언제든 중단 가능 강조)")
-                st.write("- **예상 효과**: 자동결제 전환율 15% → 42%, 매월 잔존율 8% 포인트 상승")
+                st.markdown("> **[VIP 고객] 최상위 유지(Retention) 전략**")
+                st.write("- **전략**: 장기 결제 감사 캠페인 및 프리미엄 전용 혜택 제공.")
+            elif auto_renew == 0:
+                st.markdown("> **[핵심 과제] 자동 결제 전환 캠페인**")
+                st.write("- **전략**: 자동 결제 전환 시 '6개월간 결제액 20% 페이백' 제공.")
             else:
-                st.markdown("#### **[기존 전환] 월 구독 → 연간 구독 모델 제안**")
-                st.write("- **목표**: LTV 극대화 및 이탈 위험 감소")
-                st.write("- **전략**:")
-                st.write("  1️⃣ 요금제 재구성 (월 9,900원 → 연 99,000원, 15% 할인)")
-                st.write("  2️⃣ 번들 상품 (연간권 + 프리미엄 혜택 3가지 패키지화)")
-                st.write("  3️⃣ 자동 갱신 무료 연장 (1년 이상 자동결제 시 매년 1주일 무료)")
-                st.write("- **예상 효과**: 결제 주기 12배 연장, 이탈률 35% 감소")
+                st.markdown("> **[핵심 과제] 연간 구독 모델 제안**")
+                st.write("- **전략**: 월 단위 구독을 연간 구독권으로 전환 유도하여 LTV 극대화.")
 
         with t2:
             st.markdown("#### **2. 사용자 활동성 및 경험 강화**")
-            st.write("**분석 인사이트**: 월 청취 시간이 50% 감소하는 고객은 3주 내 이탈 확률 70%")
-            st.markdown("")
-            
             if total_mins < 30:
-                st.warning("#### **⚠️ [활성화 필수] 휴면 사용자 깨우기**")
-                st.write("- **현황**: 일일 평균 청취 시간 30분 미만 (위험 신호)")
-                st.write("- **전략**:")
-                st.write("  1️⃣ 맥락 기반 푸시 (자기 직전, 출퇴근 시간 등 활동 예상 시간대에 정확히 발송)")
-                st.write("  2️⃣ 선호곡 신곡 정보 (구독 중인 아티스트 신곡 출시 즉시 알림)")
-                st.write("  3️⃣ 도파민 트리거 (일주일 연속 청취 시 배지, 월 10시간 도달 시 포인트)")
-                st.write("- **예상 효과**: 활동성 70% 증대, 이탈 시점 7일 연장")
-            elif total_mins < 180:
-                st.markdown("#### **✅ [심화] 고관여층으로의 업그레이드**")
-                st.write("- **현황**: 안정적 활동 패턴 (월 20~30시간)")
-                st.write("- **전략**:")
-                st.write("  1️⃣ 프리미엄 음질 경험 (HD 음질 3일 체험 → 월정액 +2,000원 전환)")
-                st.write("  2️⃣ 큐레이션 심화 (AI 기반 '내 음악' 맞춤 플레이리스트 주 3회 제공)")
-                st.write("  3️⃣ 팬덤 커뮤니티 (좋아하는 아티스트 팬클럽에 자동 가입)")
-                st.write("- **예상 효과**: 프리미엄 전환율 12% → 28%, 월 청취 시간 25% 증가")
+                st.markdown("> **[활성화] 맥락 기반 푸시 전략**")
+                st.write("- **전략**: 선호 아티스트 신곡 정보를 활동 예상 시간대에 맞춰 타겟팅 발송.")
             else:
-                st.success("#### **🔥 [유지] 충성 팬층 강화 전략**")
-                st.write("- **현황**: 월 180분 이상 청취 (상위 5% 헤비 유저)")
-                st.write("- **전략**:")
-                st.write("  1️⃣ VIP 전용 이벤트 (월 라이브 스트리밍, 아티스트 친절 Q&A)")
-                st.write("  2️⃣ 팬 포인트 프로그램 (매월 청취시간 기반 적립, 굿즈/콘서트표 교환)")
-                st.write("  3️⃣ 공동 제작 기회 (플레이리스트 큐레이션, 앨범 커버 투표 권한)")
-                st.write("- **예상 효과**: 재구독율 98% 유지, 월 평균 추가 결제 발생")
+                st.markdown("> **[심화] 프리미엄 경험 확대**")
+                st.write("- **전략**: 고음질 체험권 등을 통해 고관여 유저 세그먼트로 이동 유도.")
 
         with t3:
             st.markdown("#### **3. 예방적 관리 및 브랜드 소통**")
-            st.markdown("")
-            
             if cancel_rate > 0.5:
-                st.error("#### **🚨 [긴급 SOS] 이탈 직전 고객 집중 구출**")
-                st.write("- **위험도**: 🔴 **CRITICAL** (이탈 가능성 85% 이상)")
-                st.write("- **전략**:")
-                st.write("  1️⃣ 실시간 대응 (해지 클릭 시 즉시 '구독 일시정지' 옵션 팝업)")
-                st.write("  2️⃣ 1:1 상담 (상담사 직통: 실시간 채팅 + 이메일, 최대 3일 내 응답)")
-                st.write("  3️⃣ 조건부 혜택 (한 달 무료 + 최근 불만사항 '구체적' 해결책 제시)")
-                st.write("  4️⃣ 탈퇴 조사 (이탈 사유 3문 10초 미니 서베이로 개선 방향 파악)")
-                st.write("- **예상 효과**: 이탈 저지율 42%, 재가입율 18%")
-            elif cancel_rate > 0.2:
-                st.warning("#### **⚠️ [예방] 불만 고객 선제 대응**")
-                st.write("- **위험도**: 🟡 **WARNING** (이탈 이력 있으나 진행 중)")
-                st.write("- **전략**:")
-                st.write("  1️⃣ 만족도 맞춤 조사 (주 1회 간단한 감정 피드백: 😊😐😞)")
-                st.write("  2️⃣ 프로액티브 지원 (불만 키워드 감지 시 자동 지원팀 배정)")
-                st.write("  3️⃣ 개선 공개 (고객의 피드백 → 서비스 개선 → 감사 피드백)")
-                st.write("- **예상 효과**: 불만 재발률 40% 감소, 신뢰도 3포인트 증가")
+                st.error("**[긴급 대응] 이탈 징후 유저 집중 케어**")
+                st.write("- **전략**: 해지 시도 시 '1:1 실시간 상담' 혹은 '구독 일시정지' 옵션 즉시 제안.")
             else:
-                st.success("#### **💎 [심화] 브랜드 애호가 프로그램**")
-                st.write("- **만족도**: 🟢 **STABLE** (충성 고객 단계)")
-                st.write("- **전략**:")
-                st.write("  1️⃣ 브랜드 서포터즈 양성 (SNS 활동, 리뷰 작성 시 월 포인트 적립)")
-                st.write("  2️⃣ 서비스 개선 설문 참여 (분기별 빅 결정에 투표권 부여, 채택 시 보상)")
-                st.write("  3️⃣ 커뮤니티 리더 기회 (블로그, 유튜브 협력, 제휴 수익 배분)")
-                st.write("- **예상 효과**: 재구독율 96% 이상 유지, 입소문 효과로 신규 이탈률 15% 감소")
-
-        with t4:
-            st.markdown("#### **4. 예상 실행 효과 및 ROI**")
-            st.markdown("")
-            
-            # 시나리오별 효과 계산
-            if txn_cnt <= 3 and cancel_rate < 0.2:
-                # 신규 유저 시나리오
-                st.write("**📊 신규 고객(초기 1-3개월) 기대 효과:**")
-                st.write("| 지표 | 개입 전 | 개입 후 | 개선 |")
-                st.write("|------|--------|--------|------|")
-                st.write("| 재결제율 | 35% | 68% | **+33%p** |")
-                st.write("| 이탈률 | 50% | 25% | **-25%p** |")
-                st.write("| 평균 생존 기간 | 8개월 | 14개월 | **+75%** |")
-                st.write("| 개입당 비용 | - | ~2,000원 | - |")
-                st.write("| **예상 수익성** | - | - | **1인당 +18만원** |")
-                
-            elif cancel_rate > 0.5:
-                # 고위험 고객 시나리오
-                st.write("**🚨 고위험 고객(긴급 대응) 기대 효과:**")
-                st.write("| 지표 | 개입 전 | 개입 후 | 개선 |")
-                st.write("|------|--------|--------|------|")
-                st.write("| 이탈 저지율 | 0% | 42% | **+42%p** |")
-                st.write("| 재가입율 | 8% | 18% | **+10%p** |")
-                st.write("| 순손익 (개입 비용 제외) | -30만원 | +12만원 | **+42만원** |")
-                st.write("| 개입당 비용 | - | ~5,000원 | - |")
-                st.write("| **예상 순수익** | - | - | **1인당 +11만원** |")
-                
-            else:
-                # 일반 고객 시나리오
-                st.write("**📈 일반 고객(지속 관리) 기대 효과:**")
-                st.write("| 지표 | 개입 전 | 개입 후 | 개선 |")
-                st.write("|------|--------|--------|------|")
-                st.write("| 월 체류율 | 88% | 94% | **+6%p** |")
-                st.write("| 월 활동성 | 20시간 | 26시간 | **+30%** |")
-                st.write("| 평균 결제액 | 9,900원 | 12,400원 | **+25%** |")
-                st.write("| 개입당 비용 | - | ~500원 | - |")
-                st.write("| **예상 수익성** | - | - | **1인당 +3.5만원/월** |")
-            
-            st.markdown("")
-            st.info("""
-            **💡 핵심 전략:**
-            - **신규/고위험**: 공격적 개입이 ROI 최고 (50~100% 단기 효과)
-            - **일반 고객**: 지속적 관리로 장기 LTV 극대화 (50% 이상 향상)
-            - **VIP**: 가장 높은 유지율 필요 (1명의 VIP = 신규 5명)
-            
-            **⚡ 빠른 실행 체크리스트:**
-            1. [ ] 오늘: 고위험 고객 1:1 상담팀 배정
-            2. [ ] 이번주: 자동결제 UX 개선 + 20% 페이백 카피 준비
-            3. [ ] 다음주: 신규 온보딩 보너스 활성화
-            4. [ ] 1개월 후: 효과 측정 & 피드백 반영
-            """)
-
-        st.markdown("---")
+                st.markdown("> **[브랜드] 커뮤니티 전략**")
+                st.write("- **전략**: 브랜드 서포터즈 권한 부여 및 서비스 개선 설문 참여 유도.")
 
     st.markdown("---")
     st.caption("KeepTune v2.6 | Enterprise AI Decision Support System Operating")
-
-if __name__ == "__main__":
-    run_predict()
