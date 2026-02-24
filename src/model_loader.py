@@ -5,7 +5,6 @@ import numpy as np
 import streamlit as st
 from pathlib import Path
 
-# [경로 수정] image_aaf659.png 구조 반영
 ROOT_DIR = Path(__file__).resolve().parents[1]
 MODELS_DIR = ROOT_DIR / "results"  # 모델이 results 폴더에 있음
 
@@ -15,8 +14,8 @@ def get_resources():
         # 1. XGBoost 로드 (.pkl)
         xgb = joblib.load(MODELS_DIR / "xgboost_model.pkl")
         
-        # 2. ResNet 로드 (.pth) - CPU 환경 최적화
-        # 모델 구조 선언이 필요할 수 있으나, 전체 저장 방식(torch.save) 기준으로 로드
+        # 2. ResNet 로드 (.pth) - CPU  방식 로드.
+        # 전체 저장 방식(torch.save) 기준으로 로드
         resnet = torch.load(MODELS_DIR / "resnet_model.pth", map_location='cpu')
         resnet.eval()
         
