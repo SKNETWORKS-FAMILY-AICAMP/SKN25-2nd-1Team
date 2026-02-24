@@ -2,30 +2,14 @@ import streamlit as st
 import plotly.graph_objects as go
 
 def run_strategy():
-    # 1. 헤더 설정
+    # 1. Header setup
     st.title("💡 우리 서비스 단골 고객 지키기 전략")
     st.markdown("##### **XGBoost & ResNet AI 분석으로 찾은 고객 유지(Retention) 가이드**")
     st.markdown("---")
 
-    # 2. 시뮬레이션 결과 연동
-    if st.session_state.get('predict_done'):
-        res = st.session_state.result_data
-        # float32 에러 방지를 위해 float() 변환 추가
-        risk_score = float(res['scores'][-1]) * 100
-        
-        st.success(f"✅ 현재 유저 진단 결과(이탈 위험: {risk_score:.1f}%)를 바탕으로 산출된 맞춤 전략입니다.")
-        
-        st.subheader("1. 고객을 놓치지 않았을 때 기대 효과")
-        c1, c2 = st.columns(2)
-        c1.metric("예상되는 매출 방어", "약 12.8만 원", "1년 더 이용할 때의 가치")
-        c2.metric("마케팅 효율", "4.2배", "비용 대비 이득")
-    else:
-        st.info("ℹ️ '이탈 시뮬레이터'에서 유저를 먼저 분석하면 실제 수치 기반의 전략이 나타납니다.")
-
-    st.markdown("---")
-
-    # 3. 리소스 최적화 전략
-    st.subheader("2. 어떤 고객에게 더 집중해야 할까요?")
+    
+    # 3. Resource optimization strategy
+    st.subheader("1. 어떤 고객에게 더 집중해야 할까요?")
     st.write("데이터 분석 결과, **'정기 결제'를 안 하거나 '노래 듣는 시간'이 줄어든 고객**을 먼저 챙겨야 합니다.")
     
     col_a, col_b = st.columns([1.5, 1])
@@ -52,10 +36,10 @@ def run_strategy():
 
     st.markdown("---")
 
-    # 4. 실천 가이드 (Action Plan)
-    st.subheader("3. 고객의 마음을 잡기 위해 바로 해야 할 일")
+    # 4. Action Plan
+    st.subheader("2. 고객의 마음을 잡기 위해 바로 해야 할 일")
     
-    # [수정] SyntaxError를 일으켰던 이미지 텍스트를 삭제했습니다.
+    # [Fix] Removed problematic image text that caused SyntaxError.
     
     with st.expander("📅 지금 당장: 떠나려는 고객 붙잡기", expanded=True):
         st.write("**대상**: 정기 결제를 취소했거나 곧 결제일이 다가오는 분들")
@@ -71,35 +55,35 @@ def run_strategy():
         st.write("**대상**: 6개월 넘게 꾸준히 이용해 주시는 고마운 분들")
         st.write("**방법**: 단골 전용 이벤트나 연간 회원권 할인 혜택 드리기")
 
-    #4 비즈니스 상황별 특정값에 특화된 모델을 사용한 마케팅 전략
+    # 4. Marketing strategy using models specialized for specific values by business situation
     
-    st.subheader("4. 비즈니스 상황별 타겟팅 전략 시뮬레이션")
+    st.subheader("3. 비즈니스 상황별 타겟팅 전략 시뮬레이션")
     fig = go.Figure(data=[
         go.Bar(name='🎯 Precision (정밀도)', 
                x=['🧠 모델 : ResNet', '🌲 모델 : XGBoost'], 
                y=[0.9586, 0.8434], 
-               text=['<b>Precision-정밀도</b><br>95.9%', '<b>Precision-정밀도</b><br>84.3%'], # 막대 위에 텍스트 표시
+               text=['<b>Precision-정밀도</b><br>95.9%', '<b>Precision-정밀도</b><br>84.3%'], # Display text above bars
                textposition='auto',
-               marker_color='#5D9CE0'), # 파란색 계열
+               marker_color='#5D9CE0'), # Blue color scheme
                
         go.Bar(name='🕸️ Recall (재현율)', 
                x=['🧠 모델 : ResNet', '🌲 모델 : XGBoost'], 
                y=[0.7089, 0.9593], 
                text=['<b>Recall-재현율</b><br>70.9%', '<b>Recall-재현율</b><br>95.9%'], 
                textposition='auto',
-               marker_color='#E07A5F')  # 주황색 계열
+               marker_color='#E07A5F')  # Orange color scheme
     ])
 
-    # 그래프 디자인(레이아웃) 다듬기
+    # Graph design (layout) refinement
     fig.update_layout(
-        barmode='group', # 막대를 옆으로 나란히 배치
+        barmode='group', # Place bars side by side
         title_text="분석 모델별 핵심 지표 (Precision vs Recall)",
         height=400,
-        plot_bgcolor='rgba(0,0,0,0)', # 배경 투명하게
-        yaxis=dict(range=[0, 1.1])    # y축 범위 0~1.1 (여백 확보)
+        plot_bgcolor='rgba(0,0,0,0)', # Transparent background
+        yaxis=dict(range=[0, 1.1])    # y-axis range 0~1.1 (with margin)
     )
 
-    # 스트림릿 화면에 그래프 띄우기
+    # Render chart on Streamlit
     st.plotly_chart(fig, use_container_width=True)
 
     st.markdown("---")
@@ -149,54 +133,54 @@ def run_strategy():
 
     
     
-    st.subheader("5. 듀얼 AI 앙상블: '초고위험군' 집중 마케팅 전략")
+    st.subheader("4. 듀얼 AI 앙상블: '초고위험군' 집중 마케팅 전략")
     st.markdown("<p style='color: #D90429; font-weight: bold;'>*개별 모델의 예측을 넘어, 두 모델이 공통으로 이탈을 예측한 교집합은 절대 놓쳐서는 안 될 최우선 관리 대상입니다.</p>", unsafe_allow_html=True)
 
     fig_venn = go.Figure()
 
-    # 1. XGBoost 원 (왼쪽) - 인원수에 맞춰 더 크게 (지름 0.6)
+    # 1. XGBoost circle (left) - larger to match population size (diameter 0.6)
     fig_venn.add_shape(type="circle",
-        x0=0.05, y0=0.1, x1=0.65, y1=0.7, # 가로/세로 길이 0.6의 대형 원
+        x0=0.05, y0=0.1, x1=0.65, y1=0.7, # Large circle with width/height of 0.6
         fillcolor="rgba(0, 150, 255, 0.25)", line_color="rgba(0, 120, 220, 0.9)", line_width=2
     )
     
-    # 2. ResNet 원 (오른쪽) - 상대적으로 작게 (지름 0.5)
+    # 2. ResNet circle (right) - relatively smaller (diameter 0.5)
     fig_venn.add_shape(type="circle",
-        x0=0.35, y0=0.15, x1=0.85, y1=0.65, # 가로/세로 길이 0.5 (XGBoost보다 작음)
+        x0=0.35, y0=0.15, x1=0.85, y1=0.65, # Smaller than XGBoost circle (width/height 0.5)
         fillcolor="rgba(255, 100, 80, 0.25)", line_color="rgba(220, 80, 60, 0.9)", line_width=2
     )
 
-    # 3. 텍스트 배치 (원의 중심과 교집합 위치에 맞춰 정밀 조정)
-    # XGBoost 단독 (더 커진 왼쪽 원의 중심)
+    # 3. Text placement (precisely adjusted to match circle centers and intersection position)
+    # XGBoost only (center of the larger left circle)
     fig_venn.add_annotation(x=0.22, y=0.4, text="<b>34,905명</b><br><span style='font-size:12px'>(XGBoost만)</span>", 
                             showarrow=False, font=dict(size=16, color='#000000'))
     
-    # 교집합 (두 원이 겹치는 정확히 x=0.5 위치)
+    # Intersection (exactly at x=0.5 where the two circles overlap)
     fig_venn.add_annotation(x=0.5, y=0.4, text="<b>64,430명</b><br><span style='font-size:14px'>(두 모델 동의)</span>", 
                             showarrow=False, font=dict(size=18, color="#6A1B9A")) 
     
-    # ResNet 단독 (오른쪽 원의 중심)
+    # ResNet only (center of the right circle)
     fig_venn.add_annotation(x=0.73, y=0.4, text="<b>152명</b><br><span style='font-size:12px'>(ResNet만)</span>", 
                             showarrow=False, font=dict(size=14, color="#000000"))
     
-    # 제목 및 정보 (중앙 상단)
+    # Title and info (top center)
     fig_venn.add_annotation(x=0.5, y=0.9, text="<b>이탈 예측 집합 관계 (전체 970,960명)</b>", 
                             showarrow=False, font=dict(size=20, color="#000000"))
     
     fig_venn.add_annotation(x=0.5, y=0.82, text="정상 예측: 871,473명 | 이탈 예측: 99,487명", 
                             showarrow=False, font=dict(size=13, color="#555555"))
 
-    # [🔥 핵심] 높이를 600으로 키우고, yaxis range를 [0, 1]로 맞추어 완벽한 1:1 비율 강제 고정
+    # [🔥 Key] Set height to 600 and yaxis range to [0, 1] to enforce perfect 1:1 aspect ratio
     fig_venn.update_layout(
         xaxis=dict(showgrid=False, zeroline=False, visible=False, range=[0, 1]),
         yaxis=dict(
-            showgrid=False, zeroline=False, visible=False, range=[0, 1], # 👈 x축과 동일한 범위
-            scaleanchor="x", # 👈 x축 비율에 y축을 강제 종속 (찌그러짐 완벽 방지)
+            showgrid=False, zeroline=False, visible=False, range=[0, 1], # 👈 Same range as x-axis
+            scaleanchor="x", # 👈 Force y-axis to follow x-axis ratio (prevents distortion)
             scaleratio=1     
         ),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        height=600, # 👈 전체 다이어그램 크기 대폭 확대
+        height=600, # 👈 Significantly enlarge the entire diagram
         margin=dict(l=0, r=0, t=10, b=10),
         autosize=True
     )
