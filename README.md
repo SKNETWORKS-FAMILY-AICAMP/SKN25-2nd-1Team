@@ -108,8 +108,8 @@ SKN25-2nd-1Team/
 │
 ├── results/                     # 💾 학습된 AI 모델 저장소 (GitHub 미포함)
 │   ├── resnet_model.pth         # ResNet 딥러닝 모델 가중치
-│   ├── resnet_scaler.pkl        # 🚨 [필수 다운로드!!] 딥러닝용 정규화 스케일러 반드시 데이터 다운받고 이곳에 배치!
-│   └── xgboost_model.pkl        # 🚨 [필수 다운로드!!] XGBoost 머신러닝 모델 반드시 데이터 다운받고 이곳에 배치!
+│   ├── resnet_scaler.pkl        #  딥러닝용 정규화 스케일러
+│   └── xgboost_model.pkl        #  XGBoost 머신러닝 모델
 │
 ├── scripts/                     # ⚙️ 보조 및 전처리 스크립트 모음
 │   ├── save_eda_data.py         # Streamlit용 사전 요약 데이터 생성 스크립트
