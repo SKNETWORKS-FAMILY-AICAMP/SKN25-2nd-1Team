@@ -167,10 +167,19 @@ data/kkbox_v3.parquet     ← 전처리 완료 데이터 (필수)
 data/raw/*.csv            ← 원본 CSV 파일들
 ```
 
-## 1️⃣ 모델 학습
+## 1️⃣ 모델 학습 및 평가
+
+새로운 데이터로 모델을 설계하거나 성능을 테스트하고 싶다면 아래 모듈들을 순차적으로 실행합니다.
 
 ```bash
-python ml_pipeline/train.py
+# [XGBoost] 머신러닝 기반 메인 이탈 예측 모델 학습 및 결과 시각화 저장
+python src/main.py
+
+# [ResNet] 딥러닝 기반 보조 이탈 예측 모델 학습 및 가중치 저장
+python src/dl_main.py
+
+# [Ensemble] 학습된 두 모델을 불러와 전체 데이터 대상 앙상블 예측 및 교집합 도출 수행
+python src/predict.py
 ```
 
 ---
