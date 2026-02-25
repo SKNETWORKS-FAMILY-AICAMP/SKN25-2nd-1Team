@@ -74,7 +74,6 @@ XGBoost와 ResNet 모델을 활용하여 이탈 예측을 수행하며, Streamli
 ### 📊 Data
 ![Pandas](https://img.shields.io/badge/Pandas-2.3.3-blue)
 ![NumPy](https://img.shields.io/badge/NumPy-2.4.2-lightblue)
-![PyArrow](https://img.shields.io/badge/PyArrow-23.0.1-green)
 
 ### 🤖 Modeling
 ![XGBoost](https://img.shields.io/badge/XGBoost-3.2.0-orange)
@@ -150,16 +149,19 @@ pip install -r requirements.txt
 ```
 
 ### 데이터 & 모델 파일 준비 (필수)
-프로젝트 실행에 필요한 주요 데이터(`.parquet`)와 딥러닝 모델 가중치(`.pth`)는 이미 GitHub에 포함되어 있습니다. 단, **용량이 큰 `.pkl` (전처리 요약 및 머신러닝 모델) 파일과 `.csv` (원본 데이터) 파일은 GitHub에 포함되어 있지 않습니다.**
-반드시 아래 Google Drive 링크에서 **해당 `.pkl` 파일들을 다운로드 받아 정확한 폴더 위치에 배치해야 Streamlit 대시보드가 정상 작동합니다!** (참고로 `.csv` 파일은 모델 재학습 등 파이프라인 전체를 다시 실행할 때만 필요하며, 단순히 대시보드를 실행하는 데는 필수가 아닙니다.)
+프로젝트 실행에 필요한 주요 데이터(`.parquet`)와 딥러닝 모델 가중치(`.pth`)는 이미 GitHub에 포함되어 있습니다. 
+
+단, **용량이 큰 `.pkl` (전처리 요약) 파일과 `.csv` (원본 데이터) 파일은 GitHub에 포함되어 있지 않습니다.**
+반드시 아래 Google Drive 링크에서 **해당 `.pkl` 파일들을 다운로드 받아 정확한 폴더 위치에 배치해야 Streamlit 대시보드가 정상 작동합니다!** 
+
+(참고로 `.csv` 파일은 모델 재학습 등 파이프라인 전체를 다시 실행할 때만 필요하며, 단순히 대시보드를 실행하는 데는 필수가 아닙니다.)
 
 * 🔗 **[원본데이터](https://drive.google.com/drive/folders/1jQzwvlpdP1cnwhTBjDg9Pp1raBIhHjWx)** (선택)
 * 🔗 **[preprocessed](https://drive.google.com/drive/folders/1h2GBcQeztjQ8DdyqpW2mRgxEtDanf54c)** (필수)
-* 🔗 **[모델](https://drive.google.com/drive/folders/1kune4FUe0NHCm51zQL5jBQOdLup2VO0T)** (필수)
+
 
 ```text
 다운로드 받은 후 반드시 5. Repository Structure 구조와 똑같이 파일을 배치해 주세요.
-
 ```
 
 ```
@@ -211,7 +213,7 @@ streamlit run app.py
 # 📝 8. 한 줄 회고
 
 ## 👤 김나연
-> 
+> 데이터 전처리부터 모델링, 도메인에 맞는 파생변수 생성, 이에 따른 머신러닝 딥러닝 모델 제작, 빅데이터 기반 마케팅을 위한 대시보드 제작까지 짧은 기간에 많은 경험을 할 수 있었습니다. 프로젝트 기간 이후, 코드를 추가적으로 리팩토링하여 streamlit을 서버에 올려 사용자에게 피드백을 받아보고, 모델 또한 mlflow를 통해 배포 및 모델 평가를 진행해보고 싶습니다. 마지막까지 성실히 임해준 팀원분들께 모두 감사의 말을 전하고 싶습니다.
 
 ## 👤 박범수
 > 제가 몰랐던 부분들을 팀원분들이 알려주어서 새로운 것을 많이 배우게 되는 프로젝트 기간이었습니다. 또 맡은 역할들을 모두 열심히 해주셔서 좋은 경험이었습니다.
