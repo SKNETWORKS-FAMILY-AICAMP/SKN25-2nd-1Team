@@ -176,10 +176,10 @@ data/raw/*.csv            ← 원본 CSV 파일들
 python src/main.py
 
 # [ResNet] 딥러닝 기반 보조 이탈 예측 모델 학습 및 가중치 저장
-python src/dl_main.py
+PYTHONPATH=. python src/dl_main.py
 
 # [Ensemble] 학습된 두 모델을 불러와 전체 데이터 대상 앙상블 예측 및 교집합 도출 수행
-python src/predict.py
+PYTHONPATH=. python src/predict.py
 ```
 
 ---
