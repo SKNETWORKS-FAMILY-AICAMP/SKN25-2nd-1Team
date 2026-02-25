@@ -1,6 +1,8 @@
 # 🎧 SKN25-2nd-1Team
 
 ### KKBOX Churn Prediction & Targeting Dashboard
+📺 [Youtube link](https://youtu.be/zir0PZyhF2w)
+
 
 ![Python](https://img.shields.io/badge/Python-3.10-blue)
 ![XGBoost](https://img.shields.io/badge/Model-XGBoost-orange)
@@ -106,7 +108,7 @@ SKN25-2nd-1Team/
 │   ├── preprocessed/            # 🚨 [필수 다운로드!!] Streamlit 속도 최적화를 위한 사전 집계 데이터(.pkl) 반드시 데이터 다운받고 이곳에 배치!
 │   └── kkbox_v3.parquet         # 전처리 및 병합 완료된 주요 데이터
 │
-├── results/                     # 💾 학습된 AI 모델 저장소 (GitHub 미포함)
+├── results/                     # 💾 학습된 AI 모델 저장소
 │   ├── resnet_model.pth         # ResNet 딥러닝 모델 가중치
 │   ├── resnet_scaler.pkl        #  딥러닝용 정규화 스케일러
 │   └── xgboost_model.pkl        #  XGBoost 머신러닝 모델
