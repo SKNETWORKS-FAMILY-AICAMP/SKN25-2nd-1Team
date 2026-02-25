@@ -96,35 +96,37 @@ XGBoost와 ResNet 모델을 활용하여 이탈 예측을 수행하며, Streamli
 ```
 SKN25-2nd-1Team/
 │
-├── app/                         # 📊 Streamlit 대시보드
-│   ├── model_engine/            # 모델 추론 및 전략 엔진
-│   ├── app_eda.py               # EDA 페이지
-│   ├── app_home.py              # 홈 화면
-│   ├── app_predict.py           # 예측 결과 페이지
-│   ├── app_strategy.py          # 전략 추천 페이지
-│   └── main.py                  # 🚀 대시보드 실행 파일
+├── app/                         # 📊 Streamlit 대시보드 화면 구성
+│   ├── app_eda.py               # EDA 및 데이터 시각화 페이지
+│   ├── app_home.py              # 대시보드 홈 화면
+│   ├── app_predict.py           # 머신러닝/딥러닝 예측 결과 페이지
+│   ├── app_strategy.py          # 마케팅 타겟팅 및 전략 추천 페이지
+│   └── main.py                  # Streamlit 앱 내비게이션 컨트롤러
 │
-├── data/
-│   ├── raw/                     # 원본 데이터
-│   └── preprocessed/            # 전처리 데이터
+├── data/                        # 🗂️ 데이터 파일 보관소 (GitHub 미포함)
+│   ├── preprocessed/            # 🚨 [필수 다운로드!!] Streamlit 속도 최적화를 위한 사전 집계 데이터(.pkl) 반드시 데이터 다운받고 이곳에 배치!
+│   └── kkbox_v3.parquet         # 전처리 및 병합 완료된 주요 데이터
 │
-├── ml_pipeline/
-│   └── train.py                 # 🤖 전처리 및 모델 학습 실행
+├── results/                     # 💾 학습된 AI 모델 저장소 (GitHub 미포함)
+│   ├── resnet_model.pth         # ResNet 딥러닝 모델 가중치
+│   ├── resnet_scaler.pkl        # 🚨 [필수 다운로드!!] 딥러닝용 정규화 스케일러 반드시 데이터 다운받고 이곳에 배치!
+│   └── xgboost_model.pkl        # 🚨 [필수 다운로드!!] XGBoost 머신러닝 모델 반드시 데이터 다운받고 이곳에 배치!
 │
-├── models/                      # 💾 학습된 모델 저장
-│   ├── xgb_model.pkl           # XGBoost 모델 파일
-│   └── resnet_model.pkl        # ResNet 모델 파일
+├── scripts/                     # ⚙️ 보조 및 전처리 스크립트 모음
+│   ├── save_eda_data.py         # Streamlit용 사전 요약 데이터 생성 스크립트
+│   ├── eda_interactive.py       # EDA 차트 생성 관련 함수 스크립트
+│   └── run_shap.py              # SHAP 분석 결과 저장 시뮬레이션 코드
 │
-├── notebooks/                   # 📓 실험 노트북
-│   ├── EDA.ipynb
-│   └── modeling_shap.ipynb
+├── src/                         # ⚙️ 공통 로직 모듈 (백엔드 성격)
+│   ├── data_loader.py           # 데이터 로드 처리
+│   ├── model_loader.py          # 저장된 모델 불러오기
+│   ├── predict.py               # 예측 수행 로직
+│   └── ...                      # 평가(metrics) 등 각종 모듈
 │
-├── src/                         # ⚙️ 공통 모듈
-│   ├── analysis_engine/
-│   └── model_loader.py
-│
-├── requirements.txt
-└── README.md
+├── app.py                       # 🚀 Streamlit 대시보드 최상위 실행 파일
+├── EDA.ipynb                    # 📓 초기 탐색적 데이터 분석(EDA) 결과
+├── requirements.txt             # 📦 프로젝트 필수 라이브러리 목록
+└── README.md                    # 📖 본 프로젝트 안내 문서
 ```
 
 ---
@@ -147,10 +149,18 @@ conda activate keeptune
 pip install -r requirements.txt
 ```
 
-### 데이터 준비
-프로젝트 실행 전 아래 경로에 데이터 파일이 있어야 합니다. 데이터 파일들은 용량이 크기 때문에 GitHub에 포함되지 않으며, 아래 Google Drive 링크에서 다운로드할 수 있습니다.
+### 데이터 & 모델 파일 준비 (필수)
+프로젝트 실행에 필요한 주요 데이터(`.parquet`)와 딥러닝 모델 가중치(`.pth`)는 이미 GitHub에 포함되어 있습니다. 단, **용량이 큰 `.pkl` (전처리 요약 및 머신러닝 모델) 파일과 `.csv` (원본 데이터) 파일은 GitHub에 포함되어 있지 않습니다.**
+반드시 아래 Google Drive 링크에서 **해당 `.pkl` 파일들을 다운로드 받아 정확한 폴더 위치에 배치해야 Streamlit 대시보드가 정상 작동합니다!** (참고로 `.csv` 파일은 모델 재학습 등 파이프라인 전체를 다시 실행할 때만 필요하며, 단순히 대시보드를 실행하는 데는 필수가 아닙니다.)
 
-[데이터 다운로드 링크](https://drive.google.com/drive/folders/1h2GBcQeztjQ8DdyqpW2mRgxEtDanf54c?usp=share_link)
+* 🔗 **[원본데이터](https://drive.google.com/drive/folders/1jQzwvlpdP1cnwhTBjDg9Pp1raBIhHjWx)** (선택)
+* 🔗 **[preprocessed](https://drive.google.com/drive/folders/1h2GBcQeztjQ8DdyqpW2mRgxEtDanf54c)** (필수)
+* 🔗 **[모델](https://drive.google.com/drive/folders/1kune4FUe0NHCm51zQL5jBQOdLup2VO0T)** (필수)
+
+```text
+다운로드 받은 후 반드시 5. Repository Structure 구조와 똑같이 파일을 배치해 주세요.
+
+```
 
 ```
 data/kkbox_v3.parquet     ← 전처리 완료 데이터 (필수)
